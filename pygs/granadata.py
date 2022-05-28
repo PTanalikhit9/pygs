@@ -9,7 +9,8 @@ import os
 from math import *
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.delaunay as delaunay
+#import matplotlib.delaunay as delaunay
+import matplotlib.tri as delaunay
 import re
 import csv
 import fnmatch
@@ -145,7 +146,7 @@ class GranaData:
         if mtime:
             time = int(mtime.group(1))
         else:
-            print "can't find the time in filename", filename, "read as initial config"
+            print("can't find the time in filename", filename, "read as initial config")
         if time % self.params.stride != 0:
             return
 
@@ -163,10 +164,10 @@ class GranaData:
                 Lx = float(mLx.group(1))
                 Ly = float(mLy.group(1))
             else:
-                print "can't find any system size in filename", filename, "setting size to 300x300"
+                print("can't find any system size in filename", filename, "setting size to 300x300")
 
         # set up timepoint 
-        print "reading from", filename, "into time", time, "with system size", Lx, "x", Ly
+        print("reading from", filename, "into time", time, "with system size", Lx, "x", Ly)
         if time not in self.trajectory.keys():
              self.SetUpTimepoint(time, Lx, Ly)
         #else:
@@ -275,12 +276,12 @@ class GranaData:
                 count = count + 1 
 
             else:
-                print "got bad line", line
+                print("got bad line", line)
                 return False
 
             # initialize particle if needed
             if not self.hasParticle(type, layer, id):
-            #    print "adding particle", type, layer, id
+            #    print("adding particle", type, layer, id)
                 particle = Particle(type, id, layer, radius, length, phos)
                 self.AddParticle(particle)
                 nadded = nadded + 1
@@ -289,10 +290,10 @@ class GranaData:
             if self.AddPositionToTraj(time, type, layer, id, x, y, theta, energy, region, cluster):
                 nread = nread + 1
             else:
-                print "problem with line", line
+                print("problem with line", line)
             
         # finish
-        print "read", nread, "lines and added", nadded, "particles; have particles per layer", [ [len(plist) for plist in llist] for llist in self.trajectory[time] ]
+        print("read", nread, "lines and added", nadded, "particles; have particles per layer", [ [len(plist) for plist in llist] for llist in self.trajectory[time] ])
         self.params.setTime(time)
         return True
 
@@ -388,7 +389,7 @@ class GranaData:
         # read file if found
         if dfilename:
             counts = dict()
-            print "reading Delaunay neighbor list from file", dfilename
+            print("reading Delaunay neighbor list from file", dfilename)
             dfilereader = csv.reader(open(self.params.output_path+"/"+dfilename, "r"), delimiter=' ')
             for row in dfilereader:
                 ip = int(row.pop(0))
@@ -399,11 +400,11 @@ class GranaData:
                         counts[len(self.trajectory[time][itype][layer][ip].nbhrs)] += 1
                     else:
                         counts[len(self.trajectory[time][itype][layer][ip].nbhrs)] = 1
-            print "nbhr histogram:", counts, sum(counts.values())
+            print("nbhr histogram:", counts, sum(counts.values()))
             return True
 
         # if no preexisting file, calculate from scratch
-        print "calculating Delaunay neighbor list for type, layer, time, PBC =", itype, layer, time, self.params.doPBC
+        print("calculating Delaunay neighbor list for type, layer, time, PBC =", itype, layer, time, self.params.doPBC)
 
         # collect x and y coords into list
         xcoords = []
@@ -468,7 +469,7 @@ class GranaData:
 
         # add neighbors to particles in self.trajectory
         counts = dict()
-        print "writing Delaunay neighbor list to file", dfiletarget
+        print("writing Delaunay neighbor list to file", dfiletarget)
         dfilewriter = csv.writer(open(self.params.output_path+"/"+dfiletarget, "wb"), delimiter=' ')
         for real_ip in range(len(self.trajectory[time][itype][layer])):
             if self.trajectory[time][itype][layer][real_ip]:
@@ -487,8 +488,8 @@ class GranaData:
                         
        # print sorted(list(triangulation))
        # print list(triangulation)
-        print len(triangulation), len(triangles)
-        print "nbhr histogram:", counts, sum(counts.values())
+        print(len(triangulation), len(triangles))
+        print("nbhr histogram:", counts, sum(counts.values()))
             
         # plot triangles
         if do_plot:
@@ -582,7 +583,7 @@ class GranaData:
         nbhrs[ip1] = set([ip2, ip3])
         nbhrs[ip2] = set([ip1, ip3])
         nbhrs[ip3] = set([ip2, ip1])
-        print triangulation
+        print(triangulation)
 
         # build rest of triangulation
         while len(q_edges) > 0:
@@ -639,7 +640,7 @@ class GranaData:
                                 if new_edge not in q_edges | finished_edges:
                                     q_edges.add(new_edge)
                                     if new_edge == (1, 16):
-                                        print "adding edge", new_edge, base_edge, shared_verts
+                                        print("adding edge", new_edge, base_edge, shared_verts)
 
                         else:
                             # if not triangle, move on
@@ -651,20 +652,20 @@ class GranaData:
 
                 # end check for triangles
                 if self.params.doPBC and n_tris != 2:
-                    print "WARNING: didn't find two triangles for edge", base_edge, shared_verts, n_tris, len(verts_to_check)
+                    print("WARNING: didn't find two triangles for edge", base_edge, shared_verts, n_tris, len(verts_to_check))
                     for ip in list(base_edge) + list(shared_verts):
-                        print ip, xcoords[ip], ycoords[ip]
+                        print(ip, xcoords[ip], ycoords[ip])
             else:
-                print "WARNING: no nbhrs for edge", base_edge, finished_verts
+                print("WARNING: no nbhrs for edge", base_edge, finished_verts)
 
         # check for valid triangulation (PBC only)
         if self.params.doPBC and len(triangulation) != 2*npts:
-            print "WARNING: bad triangulation", len(triangulation), 2*npts, triangulation
+            print("WARNING: bad triangulation", len(triangulation), 2*npts, triangulation)
             tri_copy = triangulation.copy()
             for edge in finished_edges:
                 for third in nbhrs[edge[0]] & nbhrs[edge[1]]:
                     if tuple(sorted([edge[0], edge[1], third])) not in triangulation:
-                        print "missing triangle is", edge, tuple(sorted([edge[0], edge[1], third]))
+                        print("missing triangle is", edge, tuple(sorted([edge[0], edge[1], third])))
             raise
 
         # if good, return triangulation
@@ -702,12 +703,12 @@ class GranaData:
             ccw_x2, ccw_y2 = x2, y2
             ccw_x3, ccw_y3 = x3, y3
             if set([149, 214, 207]) == set([ip1, ip2, ip3]):
-                print "ccw2 = x2 at", ccw_x2, ccw_y2, ", ccw3 = x3 at", ccw_x3, ccw_y3
+                print("ccw2 = x2 at", ccw_x2, ccw_y2, ", ccw3 = x3 at", ccw_x3, ccw_y3)
         else:
             ccw_x2, ccw_y2 = x3, y3
             ccw_x3, ccw_y3 = x2, y2
             if set([149, 214, 207]) == set([ip1, ip2, ip3]):
-                print "ccw2 = x3, ccw3 = x2", len(verts_to_check)
+                print("ccw2 = x3, ccw3 = x2", len(verts_to_check))
 
         # check if any other point is inside circumcircle
         for ip4 in verts_to_check:
@@ -726,7 +727,7 @@ class GranaData:
 
             if det > 0: # not a Delaunay triangle
                 if set([149, 214, 207]) == set([ip1, ip2, ip3]):
-                    print ip1, ip2, ip3, ip4, x4, y4, det
+                    print(ip1, ip2, ip3, ip4, x4, y4, det)
                 return False
             
         # if we got outside the loop, ip3 is a valid neighbor
@@ -1005,7 +1006,7 @@ class GranaData:
                     if self.trajectory[time][itype][ilayer][ipos].already_clustered:
                         self.trajectory[time][itype][ilayer][ipos].clusterID = IDmap[self.trajectory[time][itype][ilayer][ipos].clusterID]
         self.cluster_sizes[time][ilayer] = [val for [val, i] in sortedIDs]
-        print "found", len(self.cluster_sizes[time][ilayer]), "clusters at time", time, "in layer", ilayer#, "with sizes:", self.cluster_sizes[time][ilayer]
+        print("found", len(self.cluster_sizes[time][ilayer]), "clusters at time", time, "in layer", ilayer)#, "with sizes:", self.cluster_sizes[time][ilayer]
 
     def buildArrayClusters(self, time, ilayer):
         """public: builds clusters using PSII semi-crystalline array criteria, stores info in self.array_sizes
@@ -1135,7 +1136,7 @@ class GranaData:
         total_ps = 0
         for arr in self.array_sizes[time][ilayer]:
             total_ps += arr[1]
-        print "found", len(self.array_sizes[time][ilayer]), "arrays at time", time, "in layer", ilayer, "with largest cluster:", self.array_sizes[time][ilayer][0], "and total PSII", total_ps
+        print("found", len(self.array_sizes[time][ilayer]), "arrays at time", time, "in layer", ilayer, "with largest cluster:", self.array_sizes[time][ilayer][0], "and total PSII", total_ps)
         return self.array_sizes[time][ilayer][0]
 
     def getClosestApproach(self, time, ilayer, itype1, ipos1, itype2, ipos2):
@@ -1204,14 +1205,14 @@ class GranaData:
         # set up box and cell sizes
         Lx = self.params.getWidth(time)
         Ly = self.params.getHeight(time)
-        print "going to tag on boundary with Lx=", Lx, "and Ly=", Ly, "with cell size", cell_size
+        print("going to tag on boundary with Lx=", Lx, "and Ly=", Ly, "with cell size", cell_size)
         try:
             n_cells_x = int(Lx/cell_size)
             cell_size_x = Lx/float(n_cells_x)
             n_cells_y = int(Ly/cell_size)
             cell_size_y = Ly/float(n_cells_y)
         except ZeroDivisionError:
-            print Lx, Ly, cell_size, n_cells_x #, n_cells_y
+            print(Lx, Ly, cell_size, n_cells_x) #, n_cells_y
             raise
         cell_contents = [ [ [] for iy in range(n_cells_y) ] for ix in range(n_cells_x) ]
         is_bndy_cell = [ [ False for iy in range(n_cells_y) ] for ix in range(n_cells_x) ]
@@ -1225,7 +1226,7 @@ class GranaData:
                 try:
                     cell_contents[cell_x][cell_y].append(ip)
                 except IndexError:
-                    print cell_x, pos.x, cell_y, pos.y
+                    print(cell_x, pos.x, cell_y, pos.y)
                     raise
                 n_particles += 1
                 self.particles[itype][ilayer][ip]._tagged = False
@@ -1264,11 +1265,11 @@ class GranaData:
         nonbndy_area = float(n_cells_x * n_cells_y - n_bndy_cells) * cell_size_x * cell_size_y
         nonbndy_particles = float(n_particles - n_bndy_particles)
         if nonbndy_area > 0 and nonbndy_particles > 20:
-            print "interior and total density per um^2:", nonbndy_particles/nonbndy_area*1000000.0, 1000000.0*n_bndy_particles/(float(n_bndy_cells - n_empty_cells) * cell_size_x * cell_size_y)
-            print "number of nonboundary particles:", nonbndy_particles
+            print("interior and total density per um^2:", nonbndy_particles/nonbndy_area*1000000.0, 1000000.0*n_bndy_particles/(float(n_bndy_cells - n_empty_cells) * cell_size_x * cell_size_y))
+            print("number of nonboundary particles:", nonbndy_particles)
             return nonbndy_particles/nonbndy_area
         else:
-            print "too much boundary, try a different cell size?"
+            print("too much boundary, try a different cell size?")
             return 0.0
 
     def TagMtrimers(self, time):
@@ -1350,11 +1351,11 @@ class GranaData:
         maxtime = times[-1]
 
         ofilename = self.params.output_path+"/mtrimers_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing to", ofilename
+        print("writing to", ofilename)
         ofilewriter = csv.writer(open(ofilename, "wb"), delimiter=' ')
 
         for time in times:
-            print "calculating M-trimer for time", time
+            print("calculating M-trimer for time", time)
             n_any_mtrimers, n_double_mtrimers, n_unbound_trimers, n_occupied_msites = self.TagMtrimers(time)
 
             if time not in self.array_sizes:
@@ -1387,12 +1388,12 @@ class GranaData:
         for pos in self.particles[i_type][0] + self.particles[i_type][1]:
             if pos:
                 byparticle_hexatic[pos._id] = []
-        print 'going to look at '+str(len(byparticle_hexatic))+' particles'
+        print('going to look at '+str(len(byparticle_hexatic))+' particles')
 
         # loop over all start times
         for time in times:
             if time % stride == 0 and time >= mintime:
-                print "time is", time
+                print("time is", time)
                 # loop over layers
                 for i_layer in range(len(self.trajectory[time][i_type])):
                     startlayer = self.trajectory[time][i_type][i_layer]
@@ -1416,13 +1417,13 @@ class GranaData:
                         fraction_ordered.append( float(n_ordered) / float(len(startlayer)))
 
         # compute histogram
-        print len(single_hexatic)
+        print(len(single_hexatic))
         vals, bins = np.histogram( np.array(single_hexatic), 20, (0.0, 1.0))
-        print n_ordered, float(n_ordered) / len(single_hexatic), np.mean(single_hexatic), bins[np.argsort(vals)[-2]], len(single_hexatic)
+        print(n_ordered, float(n_ordered) / len(single_hexatic), np.mean(single_hexatic), bins[np.argsort(vals)[-2]], len(single_hexatic))
         
         # write to file
         ofilename = self.params.output_path+"/hexatic_type"+str(i_type)+"_start"+str(times[0])+"_end"+str(max(times))+"_stride"+str(stride)+".dat"
-        print "writing to", ofilename
+        print("writing to", ofilename)
         ofilewriter = csv.writer(open(ofilename, "wb"), delimiter=' ')
         for i in range(len(vals)):
             ofilewriter.writerow([bins[i], vals[i] / float(sum(vals))])
@@ -1448,7 +1449,7 @@ class GranaData:
             times = self.params.getTimes()
         stride = self.params.stride
         
-        print "plotting g(r) for type", itype, "with stride", stride, "and times", times
+        print("plotting g(r) for type", itype, "with stride", stride, "and times", times)
 
         # set up lists for single-time and time-average distances
         Lx = self.params.getWidth(mintime)
@@ -1462,7 +1463,7 @@ class GranaData:
         nparticles = 0.0
         for itime, time in enumerate(times):
             if time % stride == 0:
-                print "time is", time
+                print("time is", time)
 
                 Lx = self.params.getWidth(time)
                 Ly = self.params.getHeight(time)
@@ -1474,7 +1475,7 @@ class GranaData:
                 elif len(self.trajectory[time][itype][0]) > 0:
                     ilayer = 0
                 else:
-                    print "skipping time", time, "for type", itype, "because it's empty:", [ [len(plist) for plist in llist] for llist in self.trajectory[time] ]
+                    print("skipping time", time, "for type", itype, "because it's empty:", [ [len(plist) for plist in llist] for llist in self.trajectory[time] ])
                     return
                 startlayer = self.trajectory[time][itype][ilayer]
 
@@ -1511,7 +1512,7 @@ class GranaData:
 
         # write to file
         ofilename = self.params.output_path+"/gofr1d_type"+str(itype)+"_start"+str(times[0])+"_end"+str(times[-1])+"_stride"+str(stride)+".dat"
-        print "writing to", ofilename
+        print("writing to", ofilename)
         ofilewriter = csv.writer(open(ofilename, "wb"), delimiter=' ')
         for ibin in range(len(bins)):
             ofilewriter.writerow([bins[ibin]+0.5*binwidth, np.mean(g_norm_counts[ibin,:]), np.std(g_norm_counts[ibin,:]), np.sum(g_counts[ibin,:]) ])
@@ -1570,7 +1571,7 @@ class GranaData:
         nparticles = 0.0
         for time in times:
             if time % stride == 0:
-                print "time is", time
+                print("time is", time)
                 single_g2 = emptylayer
                 single_gr = emptylayer
                 startlayer = self.trajectory[time][type][i_layer]
@@ -1594,7 +1595,7 @@ class GranaData:
                                     rpar = abs(xdist*parvector[0] + ydist*parvector[1])
                                     rperp = abs(xdist*perpvector[0] + ydist*perpvector[1])
                                     if rperp < 5 and rpar < 15:
-                                        print "particles ipos", i_pos, "and jpos", j_pos, "at rpar =", rpar, "and rperp =", rperp
+                                        print("particles ipos", i_pos, "and jpos", j_pos, "at rpar =", rpar, "and rperp =", rperp)
                                             # calculate orientation correlation and add to histogram
                                         g2theta = cos( 2.0 * (i_pos.theta - j_pos.theta) )
                                         g4theta = cos( 4.0 * (i_pos.theta - j_pos.theta) )
@@ -1614,7 +1615,7 @@ class GranaData:
                 timeav_gr_z[parbin, perpbin] = 2.0 * float(timeav_gr[perpbin][parbin]) / float(nparticles)
 
         # plot as in http://matplotlib.sourceforge.net/examples/mplot3d/surface3d_demo.html
-        print "about to try to plot"
+        print("about to try to plot")
 #        fig = plt.figure()
 #        plt.suptitle("orientation correlation function starting at time "+str(times[0])+" for file "+self._parent.fileControlPanel.dir_text.GetLabel())
 #        plt.subplot(121)
@@ -1635,7 +1636,7 @@ class GranaData:
 
         # write to file
         ofilename = self.params.output_path+"/psspatial_type"+str(type)+"_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing to", ofilename
+        print("writing to", ofilename)
         ofilewriter = csv.writer(open(ofilename, "wb"), delimiter=' ')
         lastbin = len(bins) - 1
         for i in range(len(bins)):
@@ -1684,7 +1685,7 @@ class GranaData:
         Lx = self.params.getWidth(mintime)
         Ly = self.params.getHeight(mintime)
 
-        print "plotting msd for type", type, "with stride", stride, "and times", times
+        print("plotting msd for type", type, "with stride", stride, "and times", times)
 
         # set up r^2 and r^4 lists for MSD
         sum_r_sq = [ 0.0 ]
@@ -1705,7 +1706,7 @@ class GranaData:
         # loop over all start times
         for starttime in times:
             if starttime % stride == 0:
-                print "start time is", starttime #, len(sum_r_sq), sum_r_sq[0], sum_r_sq[1], count_r_sq[1]
+                print("start time is", starttime) #, len(sum_r_sq), sum_r_sq[0], sum_r_sq[1], count_r_sq[1]
                 # loop over layers
                 for i_layer in range(len(self.trajectory[starttime][type])):
                     startlayer = self.trajectory[starttime][type][i_layer]
@@ -1768,7 +1769,7 @@ class GranaData:
                                     sum_r_4th[i_corr] += rsq*rsq
                                     count_r_4th[i_corr] += 1
                                 else:
-                                    print "missing corrtime", corrtime, " so skipping it"
+                                    print("missing corrtime", corrtime, " so skipping it")
 
                                 # prepare for next loop
                                 i_corr = i_corr+1
@@ -1786,7 +1787,7 @@ class GranaData:
 
         # write to file
         ofilename = self.params.output_path+"/rsq_type"+str(type)+"_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing to", ofilename
+        print("writing to", ofilename)
         ofilewriter = csv.writer(open(ofilename, "wb"), delimiter=' ')
         for i in range(1, len(xaxis_times)):
             ofilewriter.writerow([xaxis_times[i], means_rsq[i] , grana_phos_means_rsq[i], grana_unphos_means_rsq[i], stroma_means_rsq[i], alphas_r4th[i]])
@@ -1816,7 +1817,7 @@ class GranaData:
         Lx = self.params.getWidth(mintime)
         Ly = self.params.getHeight(mintime)
 
-        print "plotting msd for type", particle._type, "with stride", stride, "and times", times
+        print("plotting msd for type", particle._type, "with stride", stride, "and times", times)
 
         # set up r^2 and r^4 lists for MSD
         sum_r_sq = [ 0.0 ]
@@ -1827,7 +1828,7 @@ class GranaData:
         # loop over all start times
         for starttime in times:
             if starttime % stride == 0:
-                print "start time is", starttime #, len(sum_r_sq), sum_r_sq[0], sum_r_sq[1], count_r_sq[1]
+                print("start time is", starttime) #, len(sum_r_sq), sum_r_sq[0], sum_r_sq[1], count_r_sq[1]
                 # get position from trajectory
                 startpos = self.trajectory[starttime][particle._type][particle._layer][particle._id]
                 pbc_image = [0, 0]
@@ -1867,7 +1868,7 @@ class GranaData:
                             sum_r_4th[i_corr] += rsq*rsq
                             count_r_4th[i_corr] += 1
                         else:
-                            print "missing corrtime", corrtime, " so skipping it"
+                            print("missing corrtime", corrtime, " so skipping it")
     
                         # prepare for next loop
                         i_corr = i_corr+1
@@ -1903,7 +1904,7 @@ class GranaData:
         maxtime = np.max(times)
         stride = self.params.stride
 
-        print "plotting angle-angle correlation over distance for type", itype, "with stride", stride, "and times", times
+        print("plotting angle-angle correlation over distance for type", itype, "with stride", stride, "and times", times)
 
         # set up arrays for bins and counts
         bins = [i*dbinwidth for i in range(int(100/dbinwidth))]
@@ -1914,7 +1915,7 @@ class GranaData:
         # loop over particles in one layer
         for itime, starttime in enumerate(times):
             if starttime % stride == 0:
-                print "time is", starttime
+                print("time is", starttime)
 
                 # choose reference layer (top if possible)
                 if len(self.trajectory[starttime][itype][1]) > 0:
@@ -1988,7 +1989,7 @@ class GranaData:
         maxtime = np.max(times)
         stride = self.params.stride
 
-        print "plotting number of neighbors within", rcut, "for type", itype, "with stride", stride, "and times", times
+        print("plotting number of neighbors within", rcut, "for type", itype, "with stride", stride, "and times", times)
 
         # set up arrays for bins and counts
         bins = [i*dbinwidth for i in range(int(35/dbinwidth))]
@@ -1998,7 +1999,7 @@ class GranaData:
         # loop over particles in one layer
         for itime, starttime in enumerate(times):
             if starttime % stride == 0:
-                print "time is", starttime
+                print("time is", starttime)
 
                 # choose reference layer (top if possible)
                 if len(self.trajectory[starttime][itype][1]) > 0:
@@ -2096,7 +2097,7 @@ class GranaData:
         maxtime = np.max(times)
         stride = self.params.stride
 
-        print "plotting NN distance and orientations for type", ptype, "with stride", stride, "and times", times
+        print("plotting NN distance and orientations for type", ptype, "with stride", stride, "and times", times)
 
         # set up arrays for bins and counts
         degree_bins = [i*tbinwidth for i in range(int(90.0/tbinwidth))]
@@ -2114,7 +2115,7 @@ class GranaData:
         # loop over particles in one layer
         for itime, starttime in enumerate(times):
             if starttime % stride == 0:
-                print "time is", starttime
+                print("time is", starttime)
 
                 # choose reference layer (top if possible)
                 if len(self.trajectory[starttime][ptype][1]) > 0:
@@ -2216,8 +2217,8 @@ class GranaData:
 
         # print summary to screen
         probs = np.mean(inplane_dist_norms, axis=1)
-        print "most probable in-plane nndist and prob:", dist_bins[np.argmax(probs)]+0.5*dbinwidth, np.max(probs)
-        print "average in-plane nndist:", np.average(dist_bins, weights=probs)+0.5*dbinwidth
+        print("most probable in-plane nndist and prob:", dist_bins[np.argmax(probs)]+0.5*dbinwidth, np.max(probs))
+        print("average in-plane nndist:", np.average(dist_bins, weights=probs)+0.5*dbinwidth)
 
     def PlotNematic(self, type):
         """deprecated: compute and print histogram of local nematic order parameters
@@ -2230,7 +2231,7 @@ class GranaData:
         maxtime = np.max(times)
         stride = self.params.stride
 
-        print "plotting nematic for type", type, "with stride", stride, "and times", times
+        print("plotting nematic for type", type, "with stride", stride, "and times", times)
 
         # set up arrays for raw theta, theta diff to stacked neighbor, and theta diff to in-plane neighbor
         nematics = []
@@ -2239,7 +2240,7 @@ class GranaData:
         # loop over times
         for time in times:
             if time % stride == 0:
-                print "time is", time
+                print("time is", time)
                 # loop over layers
                 for i_layer in range(len(self.trajectory[time][type])):
                     # loop over particles
@@ -2252,7 +2253,7 @@ class GranaData:
 
         # calculate 2D histogram of nematic and # nbhrs
         hist, xedges, yedges = np.histogram2d(nematics, nbhrs, bins=[50, max(nbhrs)-min(nbhrs)])
-        print hist.shape, xedges.shape, yedges.shape
+        print(hist.shape, xedges.shape, yedges.shape)
 
         # output
         filename = self.params.output_path+"/nematic_hist_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
@@ -2294,7 +2295,7 @@ class GranaData:
         maxtime = np.max(times)
         stride = self.params.stride
 
-        print "plotting regions with stride", stride, "and times", times
+        print("plotting regions with stride", stride, "and times", times)
 
         regions = [0, 1, 2]
         types = [0, 1]
@@ -2305,7 +2306,7 @@ class GranaData:
         for i_time in range(len(times)):
             starttime = times[i_time]
             if starttime % stride == 0:
-                print "time is", starttime
+                print("time is", starttime)
                 # loop over types
                 for type in types:
                     # loop over layers
@@ -2323,7 +2324,7 @@ class GranaData:
                                     region = startpos.region
                                     data[phostype][region][i_time] += 1
                                 else:
-                                    print type, i_layer, startpos, "doesn't include region"
+                                    print(type, i_layer, startpos, "doesn't include region")
 
         
         # average for each region for each type
@@ -2332,7 +2333,7 @@ class GranaData:
 
         # write to file
         trajfilename = self.params.output_path+"/regions_traj_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing traj to", trajfilename
+        print("writing traj to", trajfilename)
         trajfilewriter = csv.writer(open(trajfilename, "wb"), delimiter=' ')
         for i_time in range(len(times)):
             row = [times[i_time]]
@@ -2342,7 +2343,7 @@ class GranaData:
             trajfilewriter.writerow(row)
 
         statsfilename = self.params.output_path+"/regions_stats_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing stats to", statsfilename
+        print("writing stats to", statsfilename)
         statsfilewriter = csv.writer(open(statsfilename, "wb"), delimiter=' ')
         row = []
         for type in phostypes:
@@ -2382,7 +2383,7 @@ class GranaData:
         maxtime = np.max(times)
         stride = self.params.stride
 
-        print "plotting regions with stride", stride, "and times", times
+        print("plotting regions with stride", stride, "and times", times)
 
         # set up Chl params and histograms
         types = [0, 1]
@@ -2396,14 +2397,14 @@ class GranaData:
 
         # set up traj file
         trajfilename = self.params.output_path+"/cluster_traj_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing largest cluster trajectory to", trajfilename
+        print("writing largest cluster trajectory to", trajfilename)
         trajfilewriter = csv.writer(open(trajfilename, "wb"), delimiter=' ')
 
         # loop over times
         for i_time in range(len(times)):
             starttime = times[i_time]
             if starttime % stride == 0:
-                print "time is", starttime
+                print("time is", starttime)
                 # loop over layers
                 for i_layer in range(len(self.trajectory[starttime][0])):
                     # build clusters, if you haven't already
@@ -2438,12 +2439,12 @@ class GranaData:
 
         # write data
         antennafilename = self.params.output_path+"/antenna_hist_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing antenna hist to", antennafilename
+        print("writing antenna hist to", antennafilename)
         antennafilewriter = csv.writer(open(antennafilename, "wb"), delimiter=' ')
         for ibin in range(len(antenna_size_hist)):
             antennafilewriter.writerow([ antenna_size_bins[ibin], antenna_size_hist[ibin], antenna_size_hist[ibin]/float(np.array(antenna_size_hist).sum()) ])        
         clusterfilename = self.params.output_path+"/cluster_hist_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing cluster hist to", clusterfilename
+        print("writing cluster hist to", clusterfilename)
         clusterfilewriter = csv.writer(open(clusterfilename, "wb"), delimiter=' ')
         for ilhcbin in range(len(cluster_1d_bins)):
             for ipsbin in range(len(cluster_1d_bins)):
@@ -2467,18 +2468,18 @@ class GranaData:
         maxtime = np.max(times)
         stride = self.params.stride
         
-        print "plotting arrays with stride", stride, "and times", times
+        print("plotting arrays with stride", stride, "and times", times)
 
         # set up traj file
         trajfilename = self.params.output_path+"/array_traj_start"+str(times[0])+"_end"+str(maxtime)+"_stride"+str(stride)+".dat"
-        print "writing largest array trajectory to", trajfilename
+        print("writing largest array trajectory to", trajfilename)
         trajfilewriter = csv.writer(open(trajfilename, "wb"), delimiter=' ')
 
         # loop over times
         for i_time in range(len(times)):
             starttime = times[i_time]
             if starttime % stride == 0:
-                print "time is", starttime
+                print("time is", starttime)
                 largest_clusters = []
                 # loop over layers
                 for i_layer in range(len(self.trajectory[starttime][0])):
@@ -2501,7 +2502,7 @@ class GranaData:
 
                 # write largest cluster to file
                 trajfilewriter.writerow([starttime, max(largest_clusters)])
-        print "done writing array trajectory"
+        print("done writing array trajectory")
         
 
     def DrawPS(self, time, spacing=50):
@@ -2530,7 +2531,7 @@ class GranaData:
         ofilename += "layers"+''.join([str(i) for i in self.params.layers_to_draw])+"_"
         ofilename += "step"+str(time).zfill(sigfigs)+".ps" # %0*d% (time, sigfigs)
 
-        print "writing frame to", ofilename, "with bounding box", bbx, bby
+        print("writing frame to", ofilename, "with bounding box", bbx, bby)
         ofile = open(ofilename, 'w')
 
         # print header info
@@ -2787,7 +2788,7 @@ class GranaData:
         # finish up
         ofile.write("showpage\n")
         ofile.close()
-        print "done writing frame"
+        print("done writing frame")
 
 
     def getColor(self, i_type, energy, particle, time):
@@ -2815,7 +2816,7 @@ class GranaData:
             elif self.params.doTrimerEnergyColors:
                 frac = 1 - abs(energy / self.params.lhc_stacking_epsilon)
                 if frac < 0 or frac > 1:
-                    print "epsilon is wrong, got energy", energy
+                    print("epsilon is wrong, got energy", energy)
                 else:
                     color = self.params.getInterpolatedColor(i_type, frac)
 
@@ -2895,7 +2896,7 @@ class GranaData:
             elif self.params.doPSStackColors:
                 frac = 1 - abs(energy / self.params.ps_stacking_epsilon)
                 if frac < 0 or frac > 1:
-                    print "epsilon is wrong, got energy", energy
+                    print("epsilon is wrong, got energy", energy)
                     color = (0,0,0)
                 else:
                     color = self.params.getInterpolatedColor(i_type, frac)
@@ -2945,7 +2946,7 @@ class GranaData:
             if self.params.doMsiteEnergyColors:
                 frac = 1 - abs(energy / self.params.megacomplex_epsilon)
                 if frac < 0 or frac > 1:
-                    print "epsilon is wrong, got energy", energy
+                    print("epsilon is wrong, got energy", energy)
                     color = (0,0,0)
                 else:
                     color = self.params.getInterpolatedColor(i_type, frac)
@@ -3117,7 +3118,7 @@ class Params:
 
     def addTime(self, newtime):
         if newtime in self.times:
-            print newtime, "already in times:", self.times
+            print(newtime, "already in times:", self.times)
         else:
             self.times.append(newtime)
             self.times.sort()
@@ -3141,7 +3142,7 @@ class Params:
     def setWidth(self, newwidth):
         self.width = newwidth
         if self.width != self.system_sizes[self.time][0]:
-            print "width is set to", self.width, "but value grabbed from filename was", self.system_sizes[self.time][0]
+            print("width is set to", self.width, "but value grabbed from filename was", self.system_sizes[self.time][0])
             self.system_sizes[self.time][0] = self.width
 
     def getWidth(self, t):
@@ -3150,7 +3151,7 @@ class Params:
     def setHeight(self, newheight):
         self.height = newheight
         if self.height != self.system_sizes[self.time][1]:
-            print "height is set to", self.height, "but value grabbed from filename is",self.system_sizes[self.time][1]
+            print("height is set to", self.height, "but value grabbed from filename is",self.system_sizes[self.time][1])
             self.system_sizes[self.time][1] = self.height
 
     def getHeight(self, t):
@@ -3159,7 +3160,7 @@ class Params:
     def setGRad(self, newgrad):
         self.g_rad = newgrad
         if self.g_rad != self.system_sizes[self.time][2]:
-            print "grana radius is set to", self.g_rad, "but value grabbed from filename is",self.system_sizes[self.time][2]
+            print("grana radius is set to", self.g_rad, "but value grabbed from filename is",self.system_sizes[self.time][2])
             self.system_sizes[self.time][2] = self.g_rad
 
     def getGRad(self, t):
@@ -3168,7 +3169,7 @@ class Params:
     def setSWidth(self, newswidth):
         self.s_width = newswidth
         if self.s_width != self.system_sizes[self.time][3]:
-            print "stroma width is set to", self.s_width, "but value grabbed from filename is",self.system_sizes[self.time][3]
+            print("stroma width is set to", self.s_width, "but value grabbed from filename is",self.system_sizes[self.time][3])
             self.system_sizes[self.time][3] = self.s_width
 
     def getSWidth(self, t):
@@ -3206,5 +3207,6 @@ class Params:
                     self.megaEnergyMin[2] + fraction*(self.megaEnergyMax[2]-self.megaEnergyMin[2])
                     )
         else:
-            print "can only interpolate for types 0,1,2,4"
+            print("can only interpolate for types 0,1,2,4")
             return (0,0,0)
+
